@@ -7,13 +7,23 @@ namespace CryptoCube
     {
         static void Main(string[] args)
         {
-            EncryptAndPrint("SoloLearn", "0:R,1:R");
+            Console.WriteLine("Please select following operation [e]ncryption or [d]ecryption:");
+            var typeKey = Console.ReadKey();
+            var operationChoosen = typeKey.KeyChar == 'e' ? "encryption" : "decryption";
+
+            Console.WriteLine($"\r\nPlease enter data for {operationChoosen}:");
+            var data = Console.ReadLine();
+            Console.WriteLine($"Please enter custom rotation script or hit enter to use system randomly generated one:");
+            var rotationScript = Console.ReadLine();
+
+            var rotationSet = ParseRotations(rotationScript, typeKey.KeyChar);
+
+            EncryptAndPrint(data, rotationSet);
         }
 
-        private static void EncryptAndPrint(string input, string rotation)
+        private static void EncryptAndPrint(string input, RotationSequence[] rotationSet)
         {
-            var numberOfCubeRequired = input.Length / 8;
-            var rotationSet = ParseRotations(rotation);
+            var numberOfCubeRequired = input.Length / 8;            
             var buffer = new char[8];
 
             for (int i = 0; i < input.Length; i++)
@@ -32,15 +42,20 @@ namespace CryptoCube
                 }
             }
 
-            Console.Write(buffer);
+            Console.Write(buffer.Where(c => c != default(char)).ToArray());
             Console.WriteLine();
         }
 
-        private static RotationSequence[] ParseRotations(string rotationCommand)
+        private static RotationSequence[] ParseRotations(string rotationCommand, char type)
         {
+            if (string.IsNullOrEmpty(rotationCommand))
+            {
+
+            }
+
             var rotations = rotationCommand
                 .Split(",")
-                .Select(r => new RotationSequence(r));
+                .Select(r => new RotationSequence(r, type));
 
             return rotations.ToArray();
         }
@@ -50,9 +65,15 @@ namespace CryptoCube
     {
         private readonly IRotation[] rotations;
 
-        public RotationSequence(string rotationScript)
+        public RotationSequence(string rotationScript, char operationType)
         {
-            this.rotations = rotationScript.Split(":").Skip(1).Select(r =>
+            var commands = rotationScript.Split(":").Skip(1);
+
+            if (operationType == 'd') {
+                commands = commands.Reverse();
+            }
+
+            this.rotations = commands.Select(r =>
             {
                 switch (r)
                 {
@@ -67,6 +88,15 @@ namespace CryptoCube
         }
 
         internal void ApplyRotationsInSequence(Vertice vertice)
+        {
+            foreach (var rotation in rotations)
+            {
+                rotation.Rotate(vertice);
+            }
+        }
+
+
+        internal void ApplyRotationsReversely(Vertice vertice)
         {
             foreach (var rotation in rotations)
             {
@@ -114,7 +144,6 @@ namespace CryptoCube
 
         }
     }
-
 
     class RotateLeft : IRotation
     {
