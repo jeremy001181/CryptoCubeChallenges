@@ -5,6 +5,8 @@ namespace CryptoCube
 {
     class Program
     {
+        const int maxNumberOfRotation = 5;
+        static char[] RotationDirection = new[] { 'U', 'D', 'L','R'};
         static void Main(string[] args)
         {
             Console.WriteLine("Please select following operation [e]ncryption or [d]ecryption:");
@@ -15,10 +17,35 @@ namespace CryptoCube
             var data = Console.ReadLine();
             Console.WriteLine($"Please enter custom rotation script or hit enter to use system randomly generated one:");
             var rotationScript = Console.ReadLine();
-
+            if (string.IsNullOrEmpty(rotationScript)) {
+                rotationScript = GenerateRandomRotationScript(data.Length);
+                Console.WriteLine($"System generated rotation script is:\r\n{rotationScript}");
+            }
             var rotationSet = ParseRotations(rotationScript, typeKey.KeyChar);
 
             EncryptAndPrint(data, rotationSet);
+
+            Console.ReadKey();
+        }
+
+        private static string GenerateRandomRotationScript(int length)
+        {
+            var rand = new Random();
+            var scripts = new string[length/8 + 1];
+            for (var i = 0; i < scripts.Length; i++)
+            {
+                // Generate rotation sequence for each cube
+                var countOfRotation = rand.Next(1, maxNumberOfRotation);
+                var rotationSequence = new char[countOfRotation];
+                for (var j = 0; j < countOfRotation; j++)
+                {
+                    rotationSequence[j] = RotationDirection[rand.Next(0, 3)];
+                }
+
+                scripts[i] = string.Concat(i, ':', string.Join(':', rotationSequence));
+            }
+
+            return string.Join(',', scripts);
         }
 
         private static void EncryptAndPrint(string input, RotationSequence[] rotationSet)
@@ -48,11 +75,6 @@ namespace CryptoCube
 
         private static RotationSequence[] ParseRotations(string rotationCommand, char type)
         {
-            if (string.IsNullOrEmpty(rotationCommand))
-            {
-
-            }
-
             var rotations = rotationCommand
                 .Split(",")
                 .Select(r => new RotationSequence(r, type));
@@ -68,8 +90,8 @@ namespace CryptoCube
         public RotationSequence(string rotationScript, char operationType)
         {
             var commands = rotationScript.Split(":").Skip(1);
-
-            if (operationType == 'd') {
+            var isDecryption = operationType == 'd';
+            if (isDecryption) {
                 commands = commands.Reverse();
             }
 
@@ -77,10 +99,10 @@ namespace CryptoCube
             {
                 switch (r)
                 {
-                    case "U": return new RotateUp() as IRotation;
-                    case "D": return new RotateDown() as IRotation;
-                    case "L": return new RotateLeft() as IRotation;
-                    case "R": return new RotateRight() as IRotation;
+                    case "U": return isDecryption? new RotateDown() : new RotateUp() as IRotation;
+                    case "D": return isDecryption ? new RotateUp(): new RotateDown() as IRotation;
+                    case "L": return isDecryption ? new RotateRight():  new RotateLeft() as IRotation;
+                    case "R": return isDecryption ? new RotateLeft() : new RotateRight() as IRotation;
                     default:
                         throw new ArgumentException($"Invalid rotation found {r}");
                 }
@@ -88,15 +110,6 @@ namespace CryptoCube
         }
 
         internal void ApplyRotationsInSequence(Vertice vertice)
-        {
-            foreach (var rotation in rotations)
-            {
-                rotation.Rotate(vertice);
-            }
-        }
-
-
-        internal void ApplyRotationsReversely(Vertice vertice)
         {
             foreach (var rotation in rotations)
             {
